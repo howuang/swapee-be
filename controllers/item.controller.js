@@ -163,18 +163,19 @@ itemController.createOfferRequest = catchAsync(async (req, res) => {
             res.status(404).json({ message: "Please choose one of your items to offer" })
         } else if (existedOffer) {
             res.status(404).json({ message: "You already made this swap request. Please wait for the response." });
+        } else {
+            const item = await Item.findById(id);
+            const offerRequest = await OfferRequest.create({
+                item: id,
+                owner: userId,
+                itemOffers: itemOffers,
+                message,
+            });
+            item.offers.push(offerRequest._id);
+            await item.save();
+            await item.populate("offers");
+            return sendResponse(res, 200, true, offerRequest, null, "Create comment");
         }
-        const item = await Item.findById(id);
-        const offerRequest = await OfferRequest.create({
-            item: id,
-            owner: userId,
-            itemOffers: itemOffers,
-            message,
-        });
-        item.offers.push(offerRequest._id);
-        await item.save();
-        await item.populate("offers");
-        return sendResponse(res, 200, true, offerRequest, null, "Create comment");
     }
 });
 

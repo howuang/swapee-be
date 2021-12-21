@@ -47,23 +47,28 @@ offerController.update = catchAsync(async (req, res) => {
         res.status(404).json({ message: "Swap request not found" });
     } else {
         if (status === "success") {
-            found = await OfferRequest.findByIdAndUpdate(offerId, {status: "success"}, {new: true}).populate({ path: "item", populate: "offers" }).lean();
-            await Promise.all(
-                //Update other received offer requests of this item 
-                found.item.offers.map(async (offer) => {
-                    await OfferRequest.findByIdAndUpdate(found.item.offers._id, { status: "denied" }, {new: true})
-                })
-            )
+            found = await OfferRequest.findByIdAndUpdate(offerId, { status: "success" }, { new: true }).populate({ path: "item", populate: "offers" }).lean().populate("itemOffers").lean();
+            //Update other received offer requests of this item 
+            found.item.offers.map(async (offer) => {
+                await OfferRequest.findByIdAndUpdate(offer._id, { status: "denied" }, { new: true })
+            })
+            //Deny all offers of each offer item 
+            found.itemOffers.forEach((singleItem) => {
+                if (singleItem.offers.length >= 1) {
+                    singleItem.offers.map(async (offer) => {
+                        await OfferRequest.findByIdAndUpdate(offer._id, { status: "denied" }, { new: true })
+                    })
+                }
+            });
             //Update item in the request as swapped
             await Item.findByIdAndUpdate(found.item._id, { isSwapped: true, newOwner: found.owner._id });
             //Update all offer items in request as swapped
-            await Promise.all(
-                found.itemOffers.forEach(async(e) => {
-                    await Item.findByIdAndUpdate(e, { isSwapped: true, newOwner: found.item.owner._id })
-                })
-            )
+
+            found.itemOffers.forEach(async (e) => {
+                await Item.findByIdAndUpdate(e, { isSwapped: true, newOwner: found.item.owner._id })
+            })
         } else if (status === "deny") {
-             found = await OfferRequest.findByIdAndUpdate(offerId, {status: "denied"}, {new: true})
+            found = await OfferRequest.findByIdAndUpdate(offerId, { status: "denied" }, { new: true })
         }
         return sendResponse(
             res,
