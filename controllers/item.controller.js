@@ -44,7 +44,7 @@ itemController.list = catchAsync(async (req, res) => {
     let items;
     
     page = parseInt(page) || 1;
-    limit = parseInt(limit) || 12;
+    limit = parseInt(limit) || 24;
     const totalItems = await Item.countDocuments({ ...filter });
     const totalPages = Math.ceil(totalItems / limit);
     const offset = limit * (page - 1);
