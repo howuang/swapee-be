@@ -49,13 +49,16 @@ offerController.update = catchAsync(async (req, res) => {
         if (status === "success") {
             found = await OfferRequest.findByIdAndUpdate(offerId, { status: "success" }, { new: true }).populate({ path: "item", populate: "offers" }).lean().populate("itemOffers").lean();
             //Update other received offer requests of this item 
-            found.item.offers.map(async (offer) => {
-                await OfferRequest.findByIdAndUpdate(offer._id, { status: "denied" }, { new: true })
-            })
-            //Deny all offers of each offer item 
+            console.log("found", found.item.offers)
+            if (found.item.offers.length > 1) {
+                found.item.offers.filter((e) => e._id !== offerId).map(async (offer) => {
+                    await OfferRequest.findByIdAndUpdate(offer._id, { status: "denied" }, { new: true })
+                }) 
+            }
+            // Deny all offers of each offer item 
             found.itemOffers.forEach((singleItem) => {
                 if (singleItem.offers.length >= 1) {
-                    singleItem.offers.map(async (offer) => {
+                    singleItem.offers.filter((e) => e._id !== offerId).map(async (offer) => {
                         await OfferRequest.findByIdAndUpdate(offer._id, { status: "denied" }, { new: true })
                     })
                 }
